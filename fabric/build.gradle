@@ -1,0 +1,107 @@
+plugins {
+    id 'java'
+    id 'idea'
+    id 'maven-publish'
+    id 'fabric-loom'
+}
+
+base {
+    archivesName = "${mod_name}-fabric-${minecraft_version}"
+}
+
+repositories {
+    maven { name = "Ladysnake"; url = "https://maven.ladysnake.org/releases" }
+    maven { name = "Terraformers"; url = "https://maven.terraformersmc.com/releases/" }
+    mavenCentral()
+}
+
+dependencies {
+    minecraft "com.mojang:minecraft:${minecraft_version}"
+    mappings loom.officialMojangMappings()
+    modImplementation "net.fabricmc:fabric-loader:${fabric_loader_version}"
+    modImplementation "net.fabricmc.fabric-api:fabric-api:${fabric_version}"
+
+    // Cardinal Components - modImplementation makes it work in dev, include puts it in the JAR
+    modImplementation "dev.onyxstudios.cardinal-components-api:cardinal-components-base:5.2.2"
+    modImplementation "dev.onyxstudios.cardinal-components-api:cardinal-components-world:5.2.2"
+    include "dev.onyxstudios.cardinal-components-api:cardinal-components-base:5.2.2"
+    include "dev.onyxstudios.cardinal-components-api:cardinal-components-world:5.2.2"
+
+    implementation group: 'com.google.code.findbugs', name: 'jsr305', version: '3.0.1'
+    implementation project(":common")
+}
+
+loom {
+    if (project(":common").file("src/main/resources/${mod_id}.accesswidener").exists()) {
+        accessWidenerPath.set(project(":common").file("src/main/resources/${mod_id}.accesswidener"))
+    }
+    mixin {
+        defaultRefmapName.set("wallpaper-fabric.refmap.json")
+    }
+    runs {
+        client {
+            client()
+            setConfigName("Fabric Client")
+            ideConfigGenerated(true)
+            runDir("run")
+        }
+        server {
+            server()
+            setConfigName("Fabric Server")
+            ideConfigGenerated(true)
+            runDir("run")
+        }
+    }
+}
+
+// FIX: This method includes common code without triggering IntelliJ deduplication errors
+tasks.withType(JavaCompile).configureEach {
+    source(project(":common").sourceSets.main.allSource)
+    it.options.encoding = 'UTF-8'
+    it.options.release = 17
+}
+
+tasks.withType(Javadoc).configureEach {
+    source(project(":common").sourceSets.main.allJava)
+}
+
+tasks.named("sourcesJar", Jar) {
+    from(project(":common").sourceSets.main.allSource)
+}
+
+processResources {
+    // Pull resources from common
+    from project(":common").sourceSets.main.resources
+
+    def expandProps = [
+            "version": version,
+            "mod_id": mod_id,
+            "mod_name": mod_name,
+            "fabric_loader_version": fabric_loader_version,
+            "fabric_version": fabric_version,
+            "minecraft_version": minecraft_version
+    ]
+
+    filesMatching(['fabric.mod.json', '*.mixins.json']) {
+        expand expandProps
+    }
+
+    inputs.properties(expandProps)
+    duplicatesStrategy = DuplicatesStrategy.INCLUDE
+}
+
+tasks.withType(Jar).configureEach {
+    duplicatesStrategy = DuplicatesStrategy.WARN
+}
+
+publishing {
+    publications {
+        mavenJava(MavenPublication) {
+            artifactId base.archivesName.get()
+            from components.java
+        }
+    }
+    repositories {
+        maven { url "file://" + System.getenv("local_maven") }
+    }
+}

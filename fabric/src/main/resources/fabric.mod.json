@@ -1,0 +1,31 @@
+{
+    "schemaVersion": 1,
+    "id": "wallpaper",
+    "version": "${version}",
+    "name": "Wallpaper",
+
+    "entrypoints": {
+        "main": [
+            "net.mattias.wallpaper.WallpaperFabric"
+        ],
+        "cardinal-components": [
+            "net.mattias.wallpaper.fabric.core.data.ModComponents"
+        ]
+    },
+
+    "custom": {
+        "cardinal-components": [
+            "wallpaper:data"
+        ]
+    },
+    "mixins": [
+        "wallpaper.fabric.mixins.json"
+    ],
+    "depends": {
+        "fabricloader": ">=0.14",
+        "cardinal-components-base": ">=5.2.2",
+        "cardinal-components-world": ">=5.2.2",
+        "minecraft": "1.20.1",
+        "java": ">=17"
+    }
+}
