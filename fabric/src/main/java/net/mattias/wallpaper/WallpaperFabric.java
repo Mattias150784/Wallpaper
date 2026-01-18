@@ -16,7 +16,6 @@ public class WallpaperFabric implements ModInitializer {
         ModBlocks.init();
         WallpaperEventHandler.register();
 
-        WallpaperCommon.LOG.info("Hello Fabric world!");
         WallpaperCommon.init();
     }
 }

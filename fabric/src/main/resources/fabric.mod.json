@@ -8,6 +8,9 @@
         "main": [
             "net.mattias.wallpaper.WallpaperFabric"
         ],
+        "client": [
+            "net.mattias.wallpaper.fabric.WallpaperFabricClient"
+        ],
         "cardinal-components": [
             "net.mattias.wallpaper.fabric.core.data.ModComponents"
         ]

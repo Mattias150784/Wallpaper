@@ -4,17 +4,9 @@
   "package": "net.mattias.wallpaper.fabric.mixin",
   "compatibilityLevel": "JAVA_17",
   "mixins": [
-    "LightEngineAccessor",
-    "MixinBlockLightEngine",
-    "MixinChunkSource",
     "MixinLevel"
   ],
-  "client": [
-    "MixinIndigoBlock",
-    "MixinIndigoTerrain",
-    "MixinModelBlockRenderer",
-    "RenderChunkRegionAccessor"
-  ],
+  "client": [],
   "injectors": {
     "defaultRequire": 1
   }
