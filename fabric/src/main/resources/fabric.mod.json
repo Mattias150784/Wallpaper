@@ -1,0 +1,44 @@
+{
+    "schemaVersion": 1,
+    "id": "${mod_id}",
+    "version": "${version}",
+    "name": "${mod_name}",
+    "description": "${description}",
+    "authors": [
+        "${mod_author}"
+    ],
+    "contact": {
+        "homepage": "https://fabricmc.net/",
+        "sources": "https://github.com/FabricMC/fabric-example-mod"
+    },
+    "license": "${license}",
+    "icon": "${mod_id}.png",
+    "environment": "*",
+    "entrypoints": {
+        "main": [
+            "net.mattias.wallpaper.WallpaperFabric"
+        ],
+        "client": [
+            "net.mattias.wallpaper.fabric.WallpaperFabricClient"
+        ],
+        "cardinal-components": [
+            "net.mattias.wallpaper.fabric.core.data.ModComponents"
+        ]
+    },
+    "custom": {
+        "cardinal-components": [
+            "wallpaper:data"
+        ]
+    },
+    "mixins": [
+        "${mod_id}.fabric.mixins.json"
+    ],
+    "depends": {
+        "fabricloader": ">=${fabric_loader_version}",
+        "fabric-api": "*",
+        "cardinal-components-base": ">=6.1.0",
+        "cardinal-components-world": ">=6.1.0",
+        "minecraft": "${minecraft_version}",
+        "java": ">=${java_version}"
+    }
+}
