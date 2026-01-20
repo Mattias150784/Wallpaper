@@ -4,6 +4,8 @@ import net.mattias.wallpaper.core.block.ModBlocks;
 import net.mattias.wallpaper.platform.Services;
 import net.minecraft.core.BlockPos;
 import net.minecraft.core.Direction;
+import net.minecraft.sounds.SoundEvents;
+import net.minecraft.sounds.SoundSource;
 import net.minecraft.world.InteractionResult;
 import net.minecraft.world.item.Item;
 import net.minecraft.world.item.context.UseOnContext;
@@ -27,8 +29,12 @@ public class WallpaperScraperItem extends Item {
 
             if (!currentState.equals(defaultWallpaper)) {
                 Services.PLATFORM.addWallpaper(level, pos, face, defaultWallpaper);
+
+                level.playSound(null, pos, SoundEvents.AXE_STRIP, SoundSource.BLOCKS, 0.7F, 1.2F);
             } else {
                 Services.PLATFORM.removeWallpaper(level, pos, face);
+
+                level.playSound(null, pos, SoundEvents.WOOL_BREAK, SoundSource.BLOCKS, 0.8F, 0.9F);
             }
 
             Services.PLATFORM.syncWallpaper(level, pos);

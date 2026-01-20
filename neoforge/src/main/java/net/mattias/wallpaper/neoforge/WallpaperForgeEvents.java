@@ -8,10 +8,13 @@ import net.minecraft.core.BlockPos;
 import net.minecraft.core.Direction;
 import net.minecraft.nbt.CompoundTag;
 import net.minecraft.server.level.ServerPlayer;
+import net.minecraft.sounds.SoundEvents;
+import net.minecraft.sounds.SoundSource;
 import net.minecraft.world.InteractionResult;
 import net.minecraft.world.item.BlockItem;
 import net.minecraft.world.item.ItemStack;
 import net.minecraft.world.level.Level;
+import net.minecraft.world.level.block.SoundType;
 import net.minecraft.world.level.block.state.BlockState;
 import net.minecraft.world.phys.shapes.VoxelShape;
 import net.neoforged.bus.api.SubscribeEvent;
@@ -40,13 +43,32 @@ public class WallpaperForgeEvents {
         BlockPos pos = event.getPos();
 
         if (!level.isClientSide) {
-            ForgeWallpaperData storage = ForgeWallpaperData.get(level);
-            if (storage != null) {
-                var removed = storage.data.storage.remove(pos);
-                if (removed != null) {
-                    storage.setDirty();
-                    PacketDistributor.sendToAllPlayers(new ModMessages.SyncBlockS2CPacket(pos, new CompoundTag()));
-                }
+            removeWallpaperAt(level, pos);
+        }
+    }
+
+    @SubscribeEvent
+    public static void onBlockChange(BlockEvent.EntityPlaceEvent event) {
+        Level level = (Level) event.getLevel();
+        BlockPos pos = event.getPos();
+
+        BlockState oldState = event.getBlockSnapshot().getState();
+
+        if (!level.isClientSide && !oldState.isAir()) {
+            removeWallpaperAt(level, pos);
+        }
+    }
+
+    private static void removeWallpaperAt(Level level, BlockPos pos) {
+        ForgeWallpaperData storage = ForgeWallpaperData.get(level);
+        if (storage != null) {
+            var removed = storage.data.storage.remove(pos);
+            if (removed != null) {
+                storage.setDirty();
+
+                level.playSound(null, pos, SoundEvents.WOOL_BREAK, SoundSource.BLOCKS, 0.8F, 0.9F);
+
+                PacketDistributor.sendToAllPlayers(new ModMessages.SyncBlockS2CPacket(pos, new CompoundTag()));
             }
         }
     }
@@ -76,6 +98,11 @@ public class WallpaperForgeEvents {
                         if (serverData != null) {
                             serverData.data.storage.get(pos).put(face, heldState);
                             serverData.setDirty();
+
+                            SoundType blockSound = heldState.getSoundType();
+                            event.getLevel().playSound(null, pos, blockSound.getPlaceSound(), SoundSource.BLOCKS, 0.5F, 1.2F);
+                            event.getLevel().playSound(null, pos, SoundEvents.BAMBOO_WOOD_PLACE, SoundSource.BLOCKS, 0.4F, 1.3F);
+
                             PacketDistributor.sendToAllPlayers(new ModMessages.SyncBlockS2CPacket(pos, serverData.saveBlock(pos)));
                         }
                     }

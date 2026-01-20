@@ -5,9 +5,12 @@ import net.mattias.wallpaper.core.block.ModBlocks;
 import net.mattias.wallpaper.fabric.core.data.ModComponents;
 import net.minecraft.core.BlockPos;
 import net.minecraft.core.Direction;
+import net.minecraft.sounds.SoundEvents;
+import net.minecraft.sounds.SoundSource;
 import net.minecraft.world.InteractionResult;
 import net.minecraft.world.item.BlockItem;
 import net.minecraft.world.item.ItemStack;
+import net.minecraft.world.level.block.SoundType;
 import net.minecraft.world.level.block.state.BlockState;
 
 public class WallpaperEventHandler {
@@ -39,6 +42,10 @@ public class WallpaperEventHandler {
                         if (!level.isClientSide) {
                             data.storage.get(pos).put(face, heldState);
                             ModComponents.WALLPAPER_DATA.sync(level);
+
+                            SoundType blockSound = heldState.getSoundType();
+                            level.playSound(null, pos, blockSound.getPlaceSound(), SoundSource.BLOCKS, 0.5F, 1.2F);
+                            level.playSound(null, pos, SoundEvents.BAMBOO_WOOD_PLACE, SoundSource.BLOCKS, 0.4F, 1.3F);
                         }
 
                         return InteractionResult.sidedSuccess(level.isClientSide);
