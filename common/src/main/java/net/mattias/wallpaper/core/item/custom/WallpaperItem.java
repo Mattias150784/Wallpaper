@@ -4,6 +4,8 @@ import net.mattias.wallpaper.core.block.ModBlocks;
 import net.mattias.wallpaper.platform.Services;
 import net.minecraft.core.BlockPos;
 import net.minecraft.core.Direction;
+import net.minecraft.sounds.SoundEvents;
+import net.minecraft.sounds.SoundSource;
 import net.minecraft.world.InteractionResult;
 import net.minecraft.world.item.Item;
 import net.minecraft.world.item.context.UseOnContext;
@@ -23,11 +25,12 @@ public class WallpaperItem extends Item {
             return InteractionResult.PASS;
         }
 
-        if (!level.isClientSide) {
-            BlockState defaultWallpaper = ModBlocks.WALLPAPER_BLOCK.get().defaultBlockState();
-            Services.PLATFORM.addWallpaper(level, pos, face, defaultWallpaper);
-            Services.PLATFORM.syncWallpaper(level, pos);
-        }
+        BlockState defaultWallpaper = ModBlocks.WALLPAPER_BLOCK.get().defaultBlockState();
+        Services.PLATFORM.addWallpaper(level, pos, face, defaultWallpaper);
+        Services.PLATFORM.syncWallpaper(level, pos);
+
+        level.playSound(context.getPlayer(), pos, SoundEvents.WOOL_PLACE, SoundSource.BLOCKS, 0.8F, 1.1F);
+
         return InteractionResult.sidedSuccess(level.isClientSide);
     }
 }

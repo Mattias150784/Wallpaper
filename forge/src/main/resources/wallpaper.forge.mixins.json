@@ -5,6 +5,7 @@
   "compatibilityLevel": "JAVA_17",
   "refmap": "wallpaper.refmap.json",
   "mixins": [
+    "MixinLevel"
   ],
   "client": [],
   "injectors": {
