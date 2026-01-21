@@ -3,6 +3,7 @@ package net.mattias.wallpaper;
 import net.mattias.wallpaper.core.ModCreativeModeTab;
 import net.mattias.wallpaper.core.ModItems;
 import net.mattias.wallpaper.core.block.ModBlocks;
+import net.mattias.wallpaper.core.sound.ModSounds;
 import net.mattias.wallpaper.forge.core.network.ModMessages;
 import net.mattias.wallpaper.platform.ForgePlatformHelper;
 import net.minecraft.client.renderer.ItemBlockRenderTypes;
@@ -22,13 +23,16 @@ public class WallpaperForge {
         ForgePlatformHelper.ITEMS.register(eventBus);
         ForgePlatformHelper.BLOCKS.register(eventBus);
         ForgePlatformHelper.TABS.register(eventBus);
+        ForgePlatformHelper.SOUND_EVENTS.register(eventBus);
 
+        ModSounds.init();
         ModItems.init();
         ModBlocks.init();
         ModCreativeModeTab.init();
-        WallpaperCommon.init();
 
         ModMessages.register();
+
+        WallpaperCommon.init();
 
         if (FMLEnvironment.dist == Dist.CLIENT) {
             eventBus.addListener(this::clientSetup);
@@ -37,6 +41,7 @@ public class WallpaperForge {
 
     private void clientSetup(final FMLClientSetupEvent event) {
         event.enqueueWork(() -> {
-            ItemBlockRenderTypes.setRenderLayer(ModBlocks.WALLPAPER_BLOCK.get(), RenderType.cutout());});
+            ItemBlockRenderTypes.setRenderLayer(ModBlocks.WALLPAPER_BLOCK.get(), RenderType.cutout());
+        });
     }
 }

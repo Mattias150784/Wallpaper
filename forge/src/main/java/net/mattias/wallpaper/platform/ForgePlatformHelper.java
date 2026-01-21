@@ -7,6 +7,7 @@ import net.mattias.wallpaper.platform.services.IPlatformHelper;
 import net.minecraft.core.BlockPos;
 import net.minecraft.core.Direction;
 import net.minecraft.core.registries.Registries;
+import net.minecraft.sounds.SoundEvent;
 import net.minecraft.world.item.CreativeModeTab;
 import net.minecraft.world.item.Item;
 import net.minecraft.world.level.Level;
@@ -23,6 +24,7 @@ public class ForgePlatformHelper implements IPlatformHelper {
     public static final DeferredRegister<Item> ITEMS = DeferredRegister.create(ForgeRegistries.ITEMS, WallpaperCommon.MOD_ID);
     public static final DeferredRegister<Block> BLOCKS = DeferredRegister.create(ForgeRegistries.BLOCKS, WallpaperCommon.MOD_ID);
     public static final DeferredRegister<CreativeModeTab> TABS = DeferredRegister.create(Registries.CREATIVE_MODE_TAB, WallpaperCommon.MOD_ID);
+    public static final DeferredRegister<SoundEvent> SOUND_EVENTS = DeferredRegister.create(ForgeRegistries.SOUND_EVENTS, WallpaperCommon.MOD_ID);
 
     @Override
     public String getPlatformName() {
@@ -52,6 +54,11 @@ public class ForgePlatformHelper implements IPlatformHelper {
     @Override
     public <T extends Block> Supplier<T> registerBlock(String name, Supplier<T> block) {
         return BLOCKS.register(name, block);
+    }
+
+    @Override
+    public <T extends SoundEvent> Supplier<T> registerSound(String name, Supplier<T> sound) {
+        return SOUND_EVENTS.register(name, sound);
     }
 
     @Override

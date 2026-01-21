@@ -4,6 +4,7 @@ import net.mattias.wallpaper.fabric.core.data.ModComponents;
 import net.mattias.wallpaper.platform.services.IPlatformHelper;
 import net.minecraft.core.BlockPos;
 import net.minecraft.core.Direction;
+import net.minecraft.sounds.SoundEvent;
 import net.minecraft.world.level.Level;
 import net.minecraft.world.level.block.state.BlockState;
 import java.util.function.Supplier;
@@ -35,6 +36,13 @@ public class FabricPlatformHelper implements IPlatformHelper {
     public <T extends Block> Supplier<T> registerBlock(String name, Supplier<T> block) {
         T registeredBlock = Registry.register(BuiltInRegistries.BLOCK, new ResourceLocation(WallpaperCommon.MOD_ID, name), block.get());
         return () -> registeredBlock;
+    }
+
+    @Override
+    public <T extends SoundEvent> Supplier<T> registerSound(String name, Supplier<T> sound) {
+        T registered = Registry.register(BuiltInRegistries.SOUND_EVENT,
+                new ResourceLocation(WallpaperCommon.MOD_ID, name), sound.get());
+        return () -> registered;
     }
 
     @Override

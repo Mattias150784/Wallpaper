@@ -2,6 +2,9 @@
   "itemGroup.wallpaper": "Wallpaper",
 
   "item.wallpaper.wallpaper": "Wallpaper",
-  "item.wallpaper.wallpaper_scraper": "Wallpaper Scraper"
+  "item.wallpaper.wallpaper_scraper": "Wallpaper Scraper",
+
+  "sounds.wallpaper.wallpaper_place": "Wallpaper Placed",
+  "sounds.wallpaper.wallpaper_break": "Wallpaper Broken"
 
 }

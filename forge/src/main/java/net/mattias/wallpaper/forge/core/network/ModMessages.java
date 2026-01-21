@@ -1,6 +1,7 @@
 package net.mattias.wallpaper.forge.core.network;
 
 import net.mattias.wallpaper.WallpaperCommon;
+import net.mattias.wallpaper.core.util.SelectionPreviewManager;
 import net.mattias.wallpaper.forge.core.data.ForgeWallpaperData;
 import net.minecraft.client.Minecraft;
 import net.minecraft.core.BlockPos;
@@ -38,6 +39,10 @@ public class ModMessages {
         INSTANCE.messageBuilder(SyncBlockS2CPacket.class, id(), NetworkDirection.PLAY_TO_CLIENT)
                 .decoder(SyncBlockS2CPacket::new).encoder(SyncBlockS2CPacket::toBytes)
                 .consumerMainThread(SyncBlockS2CPacket::handle).add();
+
+        INSTANCE.messageBuilder(SelectionSyncPacket.class, id(), NetworkDirection.PLAY_TO_CLIENT)
+                .decoder(SelectionSyncPacket::new).encoder(SelectionSyncPacket::toBytes)
+                .consumerMainThread(SelectionSyncPacket::handle).add();
     }
 
     public static void sendToPlayer(Object msg, ServerPlayer player) {
@@ -131,6 +136,54 @@ public class ModMessages {
                             }
                         }
                     }
+                }
+            });
+            ctx.get().setPacketHandled(true);
+        }
+    }
+
+    public static class SelectionSyncPacket {
+        private final BlockPos pos;
+        private final Direction face;
+        private final boolean clear;
+
+        public SelectionSyncPacket(BlockPos pos, Direction face) {
+            this.pos = pos;
+            this.face = face;
+            this.clear = false;
+        }
+
+        public SelectionSyncPacket(boolean clear) {
+            this.pos = BlockPos.ZERO;
+            this.face = Direction.NORTH;
+            this.clear = clear;
+        }
+
+        public SelectionSyncPacket(FriendlyByteBuf buf) {
+            this.clear = buf.readBoolean();
+            if (!clear) {
+                this.pos = buf.readBlockPos();
+                this.face = buf.readEnum(Direction.class);
+            } else {
+                this.pos = BlockPos.ZERO;
+                this.face = Direction.NORTH;
+            }
+        }
+
+        public void toBytes(FriendlyByteBuf buf) {
+            buf.writeBoolean(clear);
+            if (!clear) {
+                buf.writeBlockPos(pos);
+                buf.writeEnum(face);
+            }
+        }
+
+        public void handle(Supplier<NetworkEvent.Context> ctx) {
+            ctx.get().enqueueWork(() -> {
+                if (clear) {
+                    SelectionPreviewManager.clearSelection();
+                } else {
+                    SelectionPreviewManager.setSelection(pos, face);
                 }
             });
             ctx.get().setPacketHandled(true);

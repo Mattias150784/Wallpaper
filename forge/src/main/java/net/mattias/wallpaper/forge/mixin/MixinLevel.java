@@ -1,5 +1,6 @@
 package net.mattias.wallpaper.forge.mixin;
 
+import net.mattias.wallpaper.core.sound.ModSounds;
 import net.mattias.wallpaper.forge.core.data.ForgeWallpaperData;
 import net.mattias.wallpaper.forge.core.network.ModMessages;
 import net.minecraft.core.BlockPos;
@@ -30,7 +31,8 @@ public abstract class MixinLevel {
                     if (removed != null) {
                         storage.setDirty();
 
-                        level.playSound(null, pos, SoundEvents.WOOL_BREAK, SoundSource.BLOCKS, 0.6F, 0.9F);
+                        level.playSound(null, pos, ModSounds.WALLPAPER_BREAK.get(),
+                                SoundSource.BLOCKS, 0.8F, 0.9F + level.getRandom().nextFloat() * 0.2F);
 
                         ModMessages.sendToAll(new ModMessages.SyncBlockS2CPacket(pos, new CompoundTag()));
                     }

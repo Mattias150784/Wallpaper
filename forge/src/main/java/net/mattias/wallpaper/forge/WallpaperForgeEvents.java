@@ -2,14 +2,14 @@ package net.mattias.wallpaper.forge;
 
 import net.mattias.wallpaper.WallpaperCommon;
 import net.mattias.wallpaper.core.block.ModBlocks;
+import net.mattias.wallpaper.core.sound.ModSounds;
+import net.mattias.wallpaper.core.util.MultiWallpaperPlacer;
 import net.mattias.wallpaper.forge.core.data.ForgeWallpaperData;
 import net.mattias.wallpaper.forge.core.network.ModMessages;
 import net.minecraft.core.BlockPos;
 import net.minecraft.core.Direction;
 import net.minecraft.nbt.CompoundTag;
 import net.minecraft.server.level.ServerPlayer;
-import net.minecraft.sounds.SoundEvents;
-import net.minecraft.sounds.SoundSource;
 import net.minecraft.world.InteractionResult;
 import net.minecraft.world.item.BlockItem;
 import net.minecraft.world.item.ItemStack;
@@ -20,8 +20,11 @@ import net.minecraft.world.phys.shapes.VoxelShape;
 import net.minecraftforge.event.entity.player.PlayerEvent;
 import net.minecraftforge.event.entity.player.PlayerInteractEvent;
 import net.minecraftforge.event.level.BlockEvent;
+import net.minecraftforge.eventbus.api.Event;
+import net.minecraftforge.eventbus.api.EventPriority;
 import net.minecraftforge.eventbus.api.SubscribeEvent;
 import net.minecraftforge.fml.common.Mod;
+import net.minecraft.sounds.SoundSource;
 
 @Mod.EventBusSubscriber(modid = WallpaperCommon.MOD_ID)
 public class WallpaperForgeEvents {
@@ -64,49 +67,119 @@ public class WallpaperForgeEvents {
             if (removed != null) {
                 storage.setDirty();
 
-                level.playSound(null, pos, SoundEvents.WOOL_BREAK, SoundSource.BLOCKS, 0.8F, 0.9F);
+                level.playSound(null, pos, ModSounds.WALLPAPER_BREAK.get(),
+                        SoundSource.BLOCKS, 0.8F, 0.9F + level.getRandom().nextFloat() * 0.2F);
 
                 ModMessages.sendToAll(new ModMessages.SyncBlockS2CPacket(pos, new CompoundTag()));
             }
         }
     }
 
-    @SubscribeEvent
+    @SubscribeEvent(priority = EventPriority.HIGHEST)
     public static void onBlockClick(PlayerInteractEvent.RightClickBlock event) {
         ItemStack stack = event.getItemStack();
-        if (stack.getItem() instanceof BlockItem blockItem) {
-            BlockPos pos = event.getPos();
-            Direction face = event.getFace();
-            if (face == null) return;
+        if (!(stack.getItem() instanceof BlockItem blockItem)) {
+            return;
+        }
 
-            var storageMap = ForgeWallpaperData.getData(event.getLevel()).storage;
-            if (storageMap.containsKey(pos) && storageMap.get(pos).containsKey(face)) {
-                BlockState existing = storageMap.get(pos).get(face);
-                BlockState defaultWallpaper = ModBlocks.WALLPAPER_BLOCK.get().defaultBlockState();
+        BlockPos pos = event.getPos();
+        Direction face = event.getFace();
+        if (face == null) return;
 
-                if (existing.equals(defaultWallpaper)) {
-                    BlockState heldState = blockItem.getBlock().defaultBlockState();
+        Level level = event.getLevel();
+        BlockState blockAtPos = level.getBlockState(pos);
 
-                    if (!isValidWallpaperBlock(heldState)) {
-                        return;
+        if (blockAtPos.isAir() || blockAtPos.canBeReplaced()) {
+            return;
+        }
+
+        var storageMap = ForgeWallpaperData.getData(level).storage;
+        if (!storageMap.containsKey(pos) || !storageMap.get(pos).containsKey(face)) {
+            return;
+        }
+
+        BlockState existing = storageMap.get(pos).get(face);
+        BlockState defaultWallpaper = ModBlocks.WALLPAPER_BLOCK.get().defaultBlockState();
+
+        if (!existing.equals(defaultWallpaper)) {
+            return;
+        }
+
+        BlockState heldState = blockItem.getBlock().defaultBlockState();
+
+        if (!isValidWallpaperBlock(heldState)) {
+            return;
+        }
+
+        event.setUseBlock(Event.Result.DENY);
+        event.setUseItem(Event.Result.DENY);
+        event.setCancellationResult(InteractionResult.SUCCESS);
+        event.setCanceled(true);
+
+        if (level.isClientSide) {
+            return;
+        }
+
+        if (!(event.getEntity() instanceof ServerPlayer player)) {
+            return;
+        }
+
+        if (player.isCrouching()) {
+            if (MultiWallpaperPlacer.hasPendingPlacement(player.getUUID())) {
+                MultiWallpaperPlacer.PlacementCallback callback = new MultiWallpaperPlacer.PlacementCallback() {
+                    @Override
+                    public boolean canPlace(Level level, BlockPos blockPos, Direction direction) {
+                        var storage = ForgeWallpaperData.getData(level).storage;
+                        if (!storage.containsKey(blockPos)) return false;
+                        if (!storage.get(blockPos).containsKey(direction)) return false;
+
+                        BlockState existingWallpaper = storage.get(blockPos).get(direction);
+                        return existingWallpaper.equals(defaultWallpaper);
                     }
 
-                    if (!event.getLevel().isClientSide) {
-                        ForgeWallpaperData serverData = ForgeWallpaperData.get(event.getLevel());
+                    @Override
+                    public void placeWallpaper(Level level, BlockPos blockPos, Direction direction, BlockState state) {
+                        ForgeWallpaperData serverData = ForgeWallpaperData.get(level);
                         if (serverData != null) {
-                            serverData.data.storage.get(pos).put(face, heldState);
+                            serverData.data.storage.get(blockPos).put(direction, state);
                             serverData.setDirty();
-
-                            SoundType blockSound = heldState.getSoundType();
-                            event.getLevel().playSound(null, pos, blockSound.getPlaceSound(), SoundSource.BLOCKS, 0.5F, 1.2F);
-                            event.getLevel().playSound(null, pos, SoundEvents.BAMBOO_WOOD_PLACE, SoundSource.BLOCKS, 0.4F, 1.3F);
-
-                            ModMessages.sendToAll(new ModMessages.SyncBlockS2CPacket(pos, serverData.saveBlock(pos)));
+                            ModMessages.sendToAll(new ModMessages.SyncBlockS2CPacket(blockPos, serverData.saveBlock(blockPos)));
                         }
                     }
-                    event.setCancellationResult(InteractionResult.sidedSuccess(event.getLevel().isClientSide));
-                    event.setCanceled(true);
+
+                    @Override
+                    public boolean hasEnoughItems(ServerPlayer p, int count) {
+                        if (p.isCreative()) return true;
+                        return getItemCount(p, stack.getItem()) >= count;
+                    }
+
+                    @Override
+                    public void consumeItems(ServerPlayer p, int count) {
+                        if (p.isCreative()) return;
+                        shrinkPlayerItem(p, stack.getItem(), count);
+                    }
+                };
+
+                MultiWallpaperPlacer.tryCompleteMultiPlacement(player, level, pos, face, heldState, callback);
+            } else {
+                MultiWallpaperPlacer.tryStartMultiPlacement(player, level, pos, face);
+            }
+        } else {
+            ForgeWallpaperData serverData = ForgeWallpaperData.get(level);
+            if (serverData != null) {
+                serverData.data.storage.get(pos).put(face, heldState);
+                serverData.setDirty();
+
+                SoundType blockSound = heldState.getSoundType();
+                level.playSound(null, pos, blockSound.getPlaceSound(), SoundSource.BLOCKS, 0.5F, 1.2F);
+                level.playSound(null, pos, ModSounds.WALLPAPER_PLACE.get(),
+                        SoundSource.BLOCKS, 0.8F, 0.9F + level.getRandom().nextFloat() * 0.2F);
+
+                if (!player.isCreative()) {
+                    stack.shrink(1);
                 }
+
+                ModMessages.sendToAll(new ModMessages.SyncBlockS2CPacket(pos, serverData.saveBlock(pos)));
             }
         }
     }
@@ -124,5 +197,37 @@ public class WallpaperForgeEvents {
         }
 
         return state.isCollisionShapeFullBlock(null, BlockPos.ZERO);
+    }
+
+    private static int getItemCount(ServerPlayer player, net.minecraft.world.item.Item item) {
+        int count = 0;
+        for (int i = 0; i < player.getInventory().getContainerSize(); i++) {
+            ItemStack stack = player.getInventory().getItem(i);
+            if (stack.getItem() == item) {
+                count += stack.getCount();
+            }
+        }
+        return count;
+    }
+
+    private static void shrinkPlayerItem(ServerPlayer player, net.minecraft.world.item.Item item, int count) {
+        int remainingToConsume = count;
+
+        for (int i = 0; i < player.getInventory().getContainerSize(); i++) {
+            ItemStack stack = player.getInventory().getItem(i);
+            if (stack.getItem() == item) {
+                int amountInStack = stack.getCount();
+
+                if (amountInStack <= remainingToConsume) {
+                    remainingToConsume -= amountInStack;
+                    player.getInventory().setItem(i, ItemStack.EMPTY);
+                } else {
+                    stack.shrink(remainingToConsume);
+                    remainingToConsume = 0;
+                }
+            }
+
+            if (remainingToConsume <= 0) break;
+        }
     }
 }
