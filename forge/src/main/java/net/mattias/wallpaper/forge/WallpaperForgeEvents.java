@@ -160,9 +160,14 @@ public class WallpaperForgeEvents {
                     }
                 };
 
-                MultiWallpaperPlacer.tryCompleteMultiPlacement(player, level, pos, face, heldState, callback);
+                int placed = MultiWallpaperPlacer.tryCompleteMultiPlacement(player, level, pos, face, heldState, callback);
+
+                ModMessages.sendToPlayer(new ModMessages.SelectionSyncPacket(true), player);
             } else {
-                MultiWallpaperPlacer.tryStartMultiPlacement(player, level, pos, face);
+                boolean started = MultiWallpaperPlacer.tryStartMultiPlacement(player, level, pos, face);
+                if (started) {
+                    ModMessages.sendToPlayer(new ModMessages.SelectionSyncPacket(pos, face), player);
+                }
             }
         } else {
             ForgeWallpaperData serverData = ForgeWallpaperData.get(level);
