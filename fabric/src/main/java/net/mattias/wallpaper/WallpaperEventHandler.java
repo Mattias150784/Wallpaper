@@ -2,16 +2,19 @@ package net.mattias.wallpaper;
 
 import net.fabricmc.fabric.api.event.player.UseBlockCallback;
 import net.mattias.wallpaper.core.block.ModBlocks;
+import net.mattias.wallpaper.core.sound.ModSounds;
 import net.mattias.wallpaper.core.util.MultiWallpaperPlacer;
 import net.mattias.wallpaper.core.util.SelectionPreviewManager;
 import net.mattias.wallpaper.fabric.core.data.ModComponents;
 import net.minecraft.core.BlockPos;
 import net.minecraft.core.Direction;
 import net.minecraft.server.level.ServerPlayer;
+import net.minecraft.sounds.SoundSource;
 import net.minecraft.world.InteractionResult;
 import net.minecraft.world.item.BlockItem;
 import net.minecraft.world.item.ItemStack;
 import net.minecraft.world.level.Level;
+import net.minecraft.world.level.block.SoundType;
 import net.minecraft.world.level.block.state.BlockState;
 
 public class WallpaperEventHandler {
@@ -98,6 +101,11 @@ public class WallpaperEventHandler {
                     } else {
                         data.storage.get(pos).put(face, heldState);
                         ModComponents.WALLPAPER_DATA.sync(level);
+
+                        SoundType blockSound = heldState.getSoundType();
+                        level.playSound(null, pos, blockSound.getPlaceSound(), SoundSource.BLOCKS, 0.5F, 1.2F);
+                        level.playSound(null, pos, ModSounds.WALLPAPER_PLACE.get(),
+                                SoundSource.BLOCKS, 0.8F, 0.9F + level.getRandom().nextFloat() * 0.2F);
 
                         if (!player.isCreative()) {
                             stack.shrink(1);
