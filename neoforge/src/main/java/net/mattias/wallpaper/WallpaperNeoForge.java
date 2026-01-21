@@ -3,6 +3,7 @@ package net.mattias.wallpaper;
 import net.mattias.wallpaper.core.ModCreativeModeTab;
 import net.mattias.wallpaper.core.ModItems;
 import net.mattias.wallpaper.core.block.ModBlocks;
+import net.mattias.wallpaper.core.sound.ModSounds;
 import net.mattias.wallpaper.neoforge.core.network.ModMessages;
 import net.mattias.wallpaper.platform.NeoForgePlatformHelper;
 import net.minecraft.client.renderer.ItemBlockRenderTypes;
@@ -23,7 +24,9 @@ public class WallpaperNeoForge {
         NeoForgePlatformHelper.ITEMS.register(modEventBus);
         NeoForgePlatformHelper.BLOCKS.register(modEventBus);
         NeoForgePlatformHelper.TABS.register(modEventBus);
+        NeoForgePlatformHelper.SOUND_EVENT.register(modEventBus);
 
+        ModSounds.init();
         ModItems.init();
         ModBlocks.init();
         ModCreativeModeTab.init();

@@ -1,6 +1,7 @@
 package net.mattias.wallpaper.neoforge.core.network;
 
 import net.mattias.wallpaper.WallpaperCommon;
+import net.mattias.wallpaper.core.util.SelectionPreviewManager;
 import net.mattias.wallpaper.neoforge.core.data.ForgeWallpaperData;
 import net.minecraft.client.Minecraft;
 import net.minecraft.core.BlockPos;
@@ -12,6 +13,7 @@ import net.minecraft.network.protocol.common.custom.CustomPacketPayload;
 import net.minecraft.resources.ResourceLocation;
 import net.minecraft.server.level.ServerPlayer;
 import net.minecraft.world.level.Level;
+import net.neoforged.neoforge.network.PacketDistributor;
 import net.neoforged.neoforge.network.handling.IPayloadContext;
 import net.neoforged.neoforge.network.registration.PayloadRegistrar;
 
@@ -29,6 +31,20 @@ public class ModMessages {
                 SyncBlockS2CPacket.STREAM_CODEC,
                 SyncBlockS2CPacket::handle
         );
+
+        registrar.playToClient(
+                SelectionSyncPacket.TYPE,
+                SelectionSyncPacket.STREAM_CODEC,
+                SelectionSyncPacket::handle
+        );
+    }
+
+    public static void sendToPlayer(CustomPacketPayload msg, ServerPlayer player) {
+        PacketDistributor.sendToPlayer(player, msg);
+    }
+
+    public static void sendToAll(CustomPacketPayload msg) {
+        PacketDistributor.sendToAllPlayers(msg);
     }
 
     public record SyncWorldS2CPacket(CompoundTag data) implements CustomPacketPayload {
@@ -42,9 +58,7 @@ public class ModMessages {
                 );
 
         @Override
-        public Type<? extends CustomPacketPayload> type() {
-            return TYPE;
-        }
+        public Type<? extends CustomPacketPayload> type() { return TYPE; }
 
         public static void handle(SyncWorldS2CPacket packet, IPayloadContext context) {
             context.enqueueWork(() -> {
@@ -64,30 +78,20 @@ public class ModMessages {
         public static final StreamCodec<FriendlyByteBuf, SyncBlockS2CPacket> STREAM_CODEC =
                 StreamCodec.of(
                         (buf, packet) -> {
-                            BlockPos.STREAM_CODEC.encode(buf, packet.pos);
+                            buf.writeBlockPos(packet.pos);
                             buf.writeNbt(packet.data);
                         },
-                        buf -> new SyncBlockS2CPacket(
-                                BlockPos.STREAM_CODEC.decode(buf),
-                                buf.readNbt()
-                        )
+                        buf -> new SyncBlockS2CPacket(buf.readBlockPos(), buf.readNbt())
                 );
 
         @Override
-        public Type<? extends CustomPacketPayload> type() {
-            return TYPE;
-        }
+        public Type<? extends CustomPacketPayload> type() { return TYPE; }
 
         public static void handle(SyncBlockS2CPacket packet, IPayloadContext context) {
             context.enqueueWork(() -> {
                 Level level = Minecraft.getInstance().level;
                 if (level != null) {
                     ForgeWallpaperData.updateClientBlock(packet.pos, packet.data, level);
-
-                    Minecraft.getInstance().levelRenderer.setBlocksDirty(
-                            packet.pos.getX(), packet.pos.getY(), packet.pos.getZ(),
-                            packet.pos.getX(), packet.pos.getY(), packet.pos.getZ()
-                    );
 
                     for (int x = -1; x <= 1; x++) {
                         for (int y = -1; y <= 1; y++) {
@@ -105,7 +109,6 @@ public class ModMessages {
                     for (Direction dir : Direction.values()) {
                         level.getLightEngine().checkBlock(packet.pos.relative(dir));
                     }
-
                     for (int x = -1; x <= 1; x++) {
                         for (int y = -1; y <= 1; y++) {
                             for (int z = -1; z <= 1; z++) {
@@ -115,6 +118,40 @@ public class ModMessages {
                             }
                         }
                     }
+                }
+            });
+        }
+    }
+
+    public record SelectionSyncPacket(BlockPos pos, Direction face, boolean clear) implements CustomPacketPayload {
+        public static final CustomPacketPayload.Type<SelectionSyncPacket> TYPE =
+                new CustomPacketPayload.Type<>(ResourceLocation.fromNamespaceAndPath(WallpaperCommon.MOD_ID, "selection_sync"));
+
+        public static final StreamCodec<FriendlyByteBuf, SelectionSyncPacket> STREAM_CODEC =
+                StreamCodec.of(
+                        (buf, packet) -> {
+                            buf.writeBoolean(packet.clear);
+                            if (!packet.clear) {
+                                buf.writeBlockPos(packet.pos);
+                                buf.writeEnum(packet.face);
+                            }
+                        },
+                        buf -> {
+                            boolean clear = buf.readBoolean();
+                            if (clear) return new SelectionSyncPacket(BlockPos.ZERO, Direction.NORTH, true);
+                            return new SelectionSyncPacket(buf.readBlockPos(), buf.readEnum(Direction.class), false);
+                        }
+                );
+
+        @Override
+        public Type<? extends CustomPacketPayload> type() { return TYPE; }
+
+        public static void handle(SelectionSyncPacket packet, IPayloadContext context) {
+            context.enqueueWork(() -> {
+                if (packet.clear) {
+                    SelectionPreviewManager.clearSelection();
+                } else {
+                    SelectionPreviewManager.setSelection(packet.pos, packet.face);
                 }
             });
         }

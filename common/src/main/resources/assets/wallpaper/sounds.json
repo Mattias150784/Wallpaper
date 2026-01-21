@@ -1,0 +1,14 @@
+{
+  "wallpaper_place": {
+    "subtitle": "sounds.wallpaper.wallpaper_place",
+    "sounds": [
+      "wallpaper:wallpaper_place"
+    ]
+  },
+  "wallpaper_break": {
+    "subtitle": "sounds.wallpaper.wallpaper_break",
+    "sounds": [
+      "wallpaper:wallpaper_break"
+    ]
+  }
+}
