@@ -11,6 +11,8 @@ import net.minecraft.client.renderer.RenderType;
 import net.minecraft.core.BlockPos;
 import net.minecraft.core.Direction;
 import net.minecraft.world.phys.AABB;
+import net.minecraft.world.phys.BlockHitResult;
+import net.minecraft.world.phys.HitResult;
 import net.minecraft.world.phys.Vec3;
 import net.minecraftforge.api.distmarker.Dist;
 import net.minecraftforge.client.event.RenderLevelStageEvent;
@@ -36,11 +38,11 @@ public class SelectionRenderer {
         }
 
         var hitResult = mc.hitResult;
-        if (hitResult == null || hitResult.getType() != net.minecraft.world.phys.HitResult.Type.BLOCK) {
+        if (hitResult == null || hitResult.getType() != HitResult.Type.BLOCK) {
             return;
         }
 
-        var blockHit = (net.minecraft.world.phys.BlockHitResult) hitResult;
+        var blockHit = (BlockHitResult) hitResult;
         BlockPos secondCorner = blockHit.getBlockPos();
         Direction hitFace = blockHit.getDirection();
 
