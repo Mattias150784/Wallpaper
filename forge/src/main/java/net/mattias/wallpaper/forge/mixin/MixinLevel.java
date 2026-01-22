@@ -5,7 +5,6 @@ import net.mattias.wallpaper.forge.core.data.ForgeWallpaperData;
 import net.mattias.wallpaper.forge.core.network.ModMessages;
 import net.minecraft.core.BlockPos;
 import net.minecraft.nbt.CompoundTag;
-import net.minecraft.sounds.SoundEvents;
 import net.minecraft.sounds.SoundSource;
 import net.minecraft.world.level.Level;
 import net.minecraft.world.level.block.state.BlockState;
