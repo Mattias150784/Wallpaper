@@ -12,8 +12,8 @@ public class ShulkerInventory {
 
     public static int getTotalItemCount(ServerPlayer player, Item item) {
         int count = 0;
-
         for (ItemStack stack : player.getInventory().items) {
+            if (stack.isEmpty()) continue;
             if (stack.is(item)) {
                 count += stack.getCount();
             } else {
@@ -27,7 +27,6 @@ public class ShulkerInventory {
                 }
             }
         }
-
         return count;
     }
 
@@ -36,7 +35,7 @@ public class ShulkerInventory {
 
         for (int i = 0; i < player.getInventory().items.size() && remaining > 0; i++) {
             ItemStack stack = player.getInventory().items.get(i);
-            if (stack.is(item)) {
+            if (!stack.isEmpty() && stack.is(item)) {
                 int toRemove = Math.min(remaining, stack.getCount());
                 stack.shrink(toRemove);
                 remaining -= toRemove;
@@ -47,8 +46,7 @@ public class ShulkerInventory {
             for (int i = 0; i < player.getInventory().items.size() && remaining > 0; i++) {
                 ItemStack stack = player.getInventory().items.get(i);
                 ItemContainerContents contents = stack.get(DataComponents.CONTAINER);
-
-                if (contents != null) {
+                if (contents != null && !stack.is(item)) {
                     remaining -= consumeFromComponent(stack, contents, item, remaining);
                 }
             }
@@ -57,21 +55,22 @@ public class ShulkerInventory {
 
     private static int consumeFromComponent(ItemStack shulkerStack, ItemContainerContents contents, Item targetItem, int maxAmount) {
         int consumed = 0;
-        List<ItemStack> newStacks = new ArrayList<>();
+        List<ItemStack> slots = new ArrayList<>();
+        contents.stream().forEach(s -> slots.add(s.copy()));
         boolean changed = false;
 
-        for (ItemStack innerStack : contents.nonEmptyItemsCopy()) {
-            if (!innerStack.isEmpty() && innerStack.is(targetItem) && consumed < maxAmount) {
+        for (ItemStack innerStack : slots) {
+            if (!innerStack.isEmpty() && innerStack.is(targetItem)) {
                 int toConsume = Math.min(innerStack.getCount(), maxAmount - consumed);
                 innerStack.shrink(toConsume);
                 consumed += toConsume;
                 changed = true;
+                if (consumed >= maxAmount) break;
             }
-            newStacks.add(innerStack);
         }
 
         if (changed) {
-            shulkerStack.set(DataComponents.CONTAINER, ItemContainerContents.fromItems(newStacks));
+            shulkerStack.set(DataComponents.CONTAINER, ItemContainerContents.fromItems(slots));
         }
 
         return consumed;

@@ -143,7 +143,7 @@ public class WallpaperEventHandler {
                             }
                         };
 
-                        int placed = MultiWallpaperPlacer.tryCompleteMultiPlacement(serverPlayer, level, pos, face, heldState, callback);
+                        MultiWallpaperPlacer.tryCompleteMultiPlacement(serverPlayer, level, pos, face, heldState, callback);
                         SelectionPreviewManager.clearSelection();
                         return InteractionResult.SUCCESS;
                     } else {
