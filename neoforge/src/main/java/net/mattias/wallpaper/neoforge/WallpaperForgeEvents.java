@@ -1,9 +1,13 @@
 package net.mattias.wallpaper.neoforge;
 
 import net.mattias.wallpaper.WallpaperCommon;
+import net.mattias.wallpaper.core.ModItems;
 import net.mattias.wallpaper.core.block.ModBlocks;
 import net.mattias.wallpaper.core.sound.ModSounds;
 import net.mattias.wallpaper.core.util.MultiWallpaperPlacer;
+import net.mattias.wallpaper.core.util.ShulkerInventory;
+import net.mattias.wallpaper.core.util.WallpaperRotationHandler;
+import net.mattias.wallpaper.core.util.WallpaperValidation;
 import net.mattias.wallpaper.neoforge.core.data.ForgeWallpaperData;
 import net.mattias.wallpaper.neoforge.core.network.ModMessages;
 import net.minecraft.core.BlockPos;
@@ -15,9 +19,10 @@ import net.minecraft.world.InteractionResult;
 import net.minecraft.world.item.BlockItem;
 import net.minecraft.world.item.ItemStack;
 import net.minecraft.world.level.Level;
+import net.minecraft.world.level.block.BaseEntityBlock;
+import net.minecraft.world.level.block.ShulkerBoxBlock;
 import net.minecraft.world.level.block.SoundType;
 import net.minecraft.world.level.block.state.BlockState;
-import net.minecraft.world.phys.shapes.VoxelShape;
 import net.neoforged.bus.api.EventPriority;
 import net.neoforged.bus.api.SubscribeEvent;
 import net.neoforged.fml.common.EventBusSubscriber;
@@ -54,7 +59,6 @@ public class WallpaperForgeEvents {
     public static void onBlockChange(BlockEvent.EntityPlaceEvent event) {
         Level level = (Level) event.getLevel();
         BlockPos pos = event.getPos();
-
         BlockState oldState = event.getBlockSnapshot().getState();
 
         if (!level.isClientSide && !oldState.isAir()) {
@@ -79,11 +83,6 @@ public class WallpaperForgeEvents {
 
     @SubscribeEvent(priority = EventPriority.HIGHEST)
     public static void onBlockClick(PlayerInteractEvent.RightClickBlock event) {
-        ItemStack stack = event.getItemStack();
-        if (!(stack.getItem() instanceof BlockItem blockItem)) {
-            return;
-        }
-
         BlockPos pos = event.getPos();
         Direction face = event.getFace();
         if (face == null) return;
@@ -103,13 +102,79 @@ public class WallpaperForgeEvents {
         BlockState existing = storageMap.get(pos).get(face);
         BlockState defaultWallpaper = ModBlocks.WALLPAPER_BLOCK.get().defaultBlockState();
 
+        ItemStack stack = event.getItemStack();
+        boolean isHoldingBlock = stack.getItem() instanceof BlockItem;
+        boolean isScraper = stack.getItem() == ModItems.WALLPAPER_SCRAPER.get();
+
+        if (!(event.getEntity() instanceof ServerPlayer player)) {
+            if (level.isClientSide && !isScraper && (isHoldingBlock || event.getEntity().isCrouching())) {
+                event.setUseBlock(TriState.FALSE);
+                event.setUseItem(TriState.FALSE);
+                event.setCancellationResult(InteractionResult.SUCCESS);
+                event.setCanceled(true);
+            }
+            return;
+        }
+
+        if (isScraper) {
+            return;
+        }
+
+        if (player.isCrouching() && !existing.equals(defaultWallpaper) && !isHoldingBlock) {
+            WallpaperRotationHandler.WallpaperDataAccess dataAccess = new WallpaperRotationHandler.WallpaperDataAccess() {
+                @Override
+                public BlockState getWallpaper(Level lvl, BlockPos p, Direction f) {
+                    var storage = ForgeWallpaperData.getData(lvl).storage;
+                    if (!storage.containsKey(p)) return null;
+                    if (!storage.get(p).containsKey(f)) return null;
+                    return storage.get(p).get(f);
+                }
+
+                @Override
+                public void setWallpaper(Level lvl, BlockPos p, Direction f, BlockState state) {
+                    ForgeWallpaperData serverData = ForgeWallpaperData.get(lvl);
+                    if (serverData != null) {
+                        serverData.data.storage.get(p).put(f, state);
+                        serverData.setDirty();
+                    }
+                }
+
+                @Override
+                public void sync(Level lvl, BlockPos p) {
+                    ForgeWallpaperData serverData = ForgeWallpaperData.get(lvl);
+                    if (serverData != null) {
+                        ModMessages.sendToAll(new ModMessages.SyncBlockS2CPacket(p, serverData.saveBlock(p)));
+                    }
+                }
+
+                @Override
+                public BlockState getDefaultWallpaper() {
+                    return ModBlocks.WALLPAPER_BLOCK.get().defaultBlockState();
+                }
+            };
+
+            boolean rotated = WallpaperRotationHandler.tryRotate(level, pos, face, player, dataAccess);
+
+            if (rotated) {
+                event.setUseBlock(TriState.FALSE);
+                event.setUseItem(TriState.FALSE);
+                event.setCancellationResult(InteractionResult.SUCCESS);
+                event.setCanceled(true);
+            }
+            return;
+        }
+
+        if (!(stack.getItem() instanceof BlockItem blockItem)) {
+            return;
+        }
+
         if (!existing.equals(defaultWallpaper)) {
             return;
         }
 
         BlockState heldState = blockItem.getBlock().defaultBlockState();
 
-        if (!isValidWallpaperBlock(heldState)) {
+        if (!isValidWallpaperBlock(heldState, player)) {
             return;
         }
 
@@ -117,14 +182,6 @@ public class WallpaperForgeEvents {
         event.setUseItem(TriState.FALSE);
         event.setCancellationResult(InteractionResult.SUCCESS);
         event.setCanceled(true);
-
-        if (level.isClientSide) {
-            return;
-        }
-
-        if (!(event.getEntity() instanceof ServerPlayer player)) {
-            return;
-        }
 
         if (player.isCrouching()) {
             if (MultiWallpaperPlacer.hasPendingPlacement(player.getUUID())) {
@@ -152,18 +209,17 @@ public class WallpaperForgeEvents {
                     @Override
                     public boolean hasEnoughItems(ServerPlayer p, int count) {
                         if (p.isCreative()) return true;
-                        return getItemCount(p, stack.getItem()) >= count;
+                        return ShulkerInventory.getTotalItemCount(p, stack.getItem()) >= count;
                     }
 
                     @Override
                     public void consumeItems(ServerPlayer p, int count) {
                         if (p.isCreative()) return;
-                        shrinkPlayerItem(p, stack.getItem(), count);
+                        ShulkerInventory.consumeItems(p, stack.getItem(), count);
                     }
                 };
 
                 MultiWallpaperPlacer.tryCompleteMultiPlacement(player, level, pos, face, heldState, callback);
-
                 ModMessages.sendToPlayer(new ModMessages.SelectionSyncPacket(BlockPos.ZERO, Direction.NORTH, true), player);
             } else {
                 boolean started = MultiWallpaperPlacer.tryStartMultiPlacement(player, level, pos, face);
@@ -191,50 +247,15 @@ public class WallpaperForgeEvents {
         }
     }
 
-    private static boolean isValidWallpaperBlock(BlockState state) {
-        VoxelShape shape = state.getCollisionShape(null, BlockPos.ZERO);
+    private static boolean isValidWallpaperBlock(BlockState state, ServerPlayer player) {
+        boolean isValid = WallpaperValidation.isValidWallpaperBlock(state);
 
-        if (!shape.isEmpty()) {
-            var bounds = shape.bounds();
-            boolean isFullCube = bounds.minX == 0.0 && bounds.minY == 0.0 && bounds.minZ == 0.0
-                    && bounds.maxX == 1.0 && bounds.maxY == 1.0 && bounds.maxZ == 1.0;
-            if (!isFullCube) {
-                return false;
+        if (!isValid && player != null) {
+            if (state.getBlock() instanceof ShulkerBoxBlock ||
+                    state.getBlock() instanceof BaseEntityBlock) {
             }
         }
 
-        return state.isCollisionShapeFullBlock(null, BlockPos.ZERO);
-    }
-
-    private static int getItemCount(ServerPlayer player, net.minecraft.world.item.Item item) {
-        int count = 0;
-        for (int i = 0; i < player.getInventory().getContainerSize(); i++) {
-            ItemStack stack = player.getInventory().getItem(i);
-            if (stack.getItem() == item) {
-                count += stack.getCount();
-            }
-        }
-        return count;
-    }
-
-    private static void shrinkPlayerItem(ServerPlayer player, net.minecraft.world.item.Item item, int count) {
-        int remainingToConsume = count;
-
-        for (int i = 0; i < player.getInventory().getContainerSize(); i++) {
-            ItemStack stack = player.getInventory().getItem(i);
-            if (stack.getItem() == item) {
-                int amountInStack = stack.getCount();
-
-                if (amountInStack <= remainingToConsume) {
-                    remainingToConsume -= amountInStack;
-                    player.getInventory().setItem(i, ItemStack.EMPTY);
-                } else {
-                    stack.shrink(remainingToConsume);
-                    remainingToConsume = 0;
-                }
-            }
-
-            if (remainingToConsume <= 0) break;
-        }
+        return isValid;
     }
 }

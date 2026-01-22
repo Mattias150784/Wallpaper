@@ -11,14 +11,14 @@ import net.minecraft.client.renderer.RenderType;
 import net.minecraft.core.BlockPos;
 import net.minecraft.core.Direction;
 import net.minecraft.world.phys.AABB;
+import net.minecraft.world.phys.BlockHitResult;
+import net.minecraft.world.phys.HitResult;
 import net.minecraft.world.phys.Vec3;
-import net.neoforged.api.distmarker.Dist;
 import net.neoforged.bus.api.SubscribeEvent;
 import net.neoforged.fml.common.EventBusSubscriber;
 import net.neoforged.neoforge.client.event.RenderLevelStageEvent;
 
-
-@EventBusSubscriber(modid = WallpaperCommon.MOD_ID, bus = EventBusSubscriber.Bus.GAME, value = Dist.CLIENT)
+@EventBusSubscriber(modid = WallpaperCommon.MOD_ID, bus = EventBusSubscriber.Bus.GAME, value = net.neoforged.api.distmarker.Dist.CLIENT)
 public class SelectionRenderer {
 
     @SubscribeEvent
@@ -37,11 +37,11 @@ public class SelectionRenderer {
         }
 
         var hitResult = mc.hitResult;
-        if (hitResult == null || hitResult.getType() != net.minecraft.world.phys.HitResult.Type.BLOCK) {
+        if (hitResult == null || hitResult.getType() != HitResult.Type.BLOCK) {
             return;
         }
 
-        var blockHit = (net.minecraft.world.phys.BlockHitResult) hitResult;
+        var blockHit = (BlockHitResult) hitResult;
         BlockPos secondCorner = blockHit.getBlockPos();
         Direction hitFace = blockHit.getDirection();
 
