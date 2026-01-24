@@ -6,7 +6,9 @@
   "mixins": [
     "MixinLevel"
   ],
-  "client": [],
+  "client": [
+    "MixinBlock"
+  ],
   "injectors": {
     "defaultRequire": 1
   }
