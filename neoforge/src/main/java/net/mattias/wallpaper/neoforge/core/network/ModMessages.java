@@ -18,7 +18,6 @@ import net.neoforged.neoforge.network.handling.IPayloadContext;
 import net.neoforged.neoforge.network.registration.PayloadRegistrar;
 
 public class ModMessages {
-
     public static void register(PayloadRegistrar registrar) {
         registrar.playToClient(
                 SyncWorldS2CPacket.TYPE,

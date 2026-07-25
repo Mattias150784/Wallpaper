@@ -2,6 +2,7 @@ package net.mattias.wallpaper.core.item.custom;
 
 import net.mattias.wallpaper.core.ModItems;
 import net.mattias.wallpaper.core.block.ModBlocks;
+import net.mattias.wallpaper.core.config.WallpaperConfig;
 import net.mattias.wallpaper.core.sound.ModSounds;
 import net.mattias.wallpaper.core.util.WallpaperVeinMiner;
 import net.mattias.wallpaper.platform.Services;
@@ -35,7 +36,7 @@ public class WallpaperScraperItem extends Item {
 
         BlockState defaultWallpaper = ModBlocks.WALLPAPER_BLOCK.get().defaultBlockState();
 
-        boolean isVeinMining = player != null && player.isCrouching();
+        boolean isVeinMining = player != null && player.isCrouching() && WallpaperConfig.veinMineScraper;
 
         if (!level.isClientSide) {
             if (isVeinMining) {
@@ -70,7 +71,7 @@ public class WallpaperScraperItem extends Item {
                                 Services.PLATFORM.removeWallpaper(level, foundPos, face);
                             }
 
-                            if (player != null && !player.isCreative()) {
+                            if (WallpaperConfig.returnItemsOnRemove && player != null && !player.isCreative()) {
                                 if (!itemToGive.isEmpty()) {
                                     if (!player.getInventory().add(itemToGive)) {
                                         player.drop(itemToGive, false);
@@ -112,7 +113,7 @@ public class WallpaperScraperItem extends Item {
                         SoundSource.BLOCKS, 0.8F, 0.9F + level.getRandom().nextFloat() * 0.2F);
             }
 
-            if (player != null && !player.isCreative()) {
+            if (WallpaperConfig.returnItemsOnRemove && player != null && !player.isCreative()) {
                 if (!itemToGive.isEmpty()) {
                     if (!player.getInventory().add(itemToGive)) {
                         player.drop(itemToGive, false);

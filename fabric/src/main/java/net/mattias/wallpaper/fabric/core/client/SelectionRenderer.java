@@ -17,7 +17,6 @@ import net.minecraft.world.phys.HitResult;
 import net.minecraft.world.phys.Vec3;
 
 public class SelectionRenderer {
-
     public static void register() {
         WorldRenderEvents.AFTER_TRANSLUCENT.register(SelectionRenderer::onRenderLevel);
     }

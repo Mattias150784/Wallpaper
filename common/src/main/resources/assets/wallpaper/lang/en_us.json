@@ -2,6 +2,39 @@
   "itemGroup.wallpaper": "Wallpaper",
 
   "item.wallpaper.wallpaper": "Wallpaper",
-  "item.wallpaper.wallpaper_scraper": "Wallpaper Scraper"
+  "item.wallpaper.wallpaper_scraper": "Wallpaper Scraper",
 
+  "wallpaper.configuration.features": "Features",
+  "wallpaper.configuration.limits": "Limits & Balance",
+  "wallpaper.configuration.performance": "Performance",
+
+  "wallpaper.configuration.emissiveLighting": "Emissive Lighting",
+  "wallpaper.configuration.emissiveLighting.tooltip": "Whether wallpaper made from light emitting blocks (glowstone, sea lantern) lights up the world.",
+
+  "wallpaper.configuration.multiPlacement": "Multi Block Placement",
+  "wallpaper.configuration.multiPlacement.tooltip": "Whether sneak + click lets players fill a rectangular area with wallpaper at once.",
+
+  "wallpaper.configuration.veinMineScraper": "Vein Mine Scraper",
+  "wallpaper.configuration.veinMineScraper.tooltip": "Whether sneaking with the scraper removes all connected wallpaper at once.",
+
+  "wallpaper.configuration.blockRotation": "Block Rotation",
+  "wallpaper.configuration.blockRotation.tooltip": "Whether logs, pillars and directional blocks can be rotated after being applied as wallpaper.",
+
+  "wallpaper.configuration.maxMultiPlaceArea": "Max Multi Place Area",
+  "wallpaper.configuration.maxMultiPlaceArea.tooltip": "Maximum number of blocks a single multi placement can cover.",
+
+  "wallpaper.configuration.maxVeinMineBlocks": "Max Vein Mine Blocks",
+  "wallpaper.configuration.maxVeinMineBlocks.tooltip": "Maximum number of wallpapers a single scraper vein mine can remove.",
+
+  "wallpaper.configuration.selectionTimeoutSeconds": "Selection Timeout (in seconds)",
+  "wallpaper.configuration.selectionTimeoutSeconds.tooltip": "How long a multi placement corner selection stays active before expiring.",
+
+  "wallpaper.configuration.consumeItems": "Consume Items",
+  "wallpaper.configuration.consumeItems.tooltip": "Whether placing wallpaper consumes items from the player's inventory (survival only).",
+
+  "wallpaper.configuration.returnItemsOnRemove": "Return Items On Removal",
+  "wallpaper.configuration.returnItemsOnRemove.tooltip": "Whether scraping wallpaper returns the wallpaper/block item to the player (survival only).",
+
+  "wallpaper.configuration.maxRenderDistance": "Max Render Distance",
+  "wallpaper.configuration.maxRenderDistance.tooltip": "Maximum distance (in blocks) at which wallpaper is rendered. Set to 0 for unlimited."
 }

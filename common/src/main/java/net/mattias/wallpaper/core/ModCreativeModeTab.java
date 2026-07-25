@@ -8,7 +8,6 @@ import net.minecraft.world.item.ItemStack;
 import java.util.function.Supplier;
 
 public class ModCreativeModeTab {
-
     public static final Supplier<CreativeModeTab> WALLPAPER_TAB = register("wallpaper_tab", () ->
             CreativeModeTab.builder(CreativeModeTab.Row.TOP, 0)
                     .title(Component.translatable("itemGroup." + WallpaperCommon.MOD_ID))

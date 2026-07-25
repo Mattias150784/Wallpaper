@@ -41,7 +41,6 @@ public class FabricPlatformHelper implements IPlatformHelper {
     @Override
     public <T extends SoundEvent> Supplier<T> registerSound(String name, Supplier<T> sound) {
         T registered = Registry.register(BuiltInRegistries.SOUND_EVENT, ResourceLocation.fromNamespaceAndPath(WallpaperCommon.MOD_ID, name), sound.get());return () -> registered;
-
     }
 
     @Override

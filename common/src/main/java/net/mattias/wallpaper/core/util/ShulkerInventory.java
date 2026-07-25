@@ -9,7 +9,6 @@ import java.util.ArrayList;
 import java.util.List;
 
 public class ShulkerInventory {
-
     public static int getTotalItemCount(ServerPlayer player, Item item) {
         int count = 0;
         for (ItemStack stack : player.getInventory().items) {

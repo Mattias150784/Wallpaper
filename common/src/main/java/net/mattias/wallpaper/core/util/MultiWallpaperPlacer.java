@@ -1,5 +1,6 @@
 package net.mattias.wallpaper.core.util;
 
+import net.mattias.wallpaper.core.config.WallpaperConfig;
 import net.mattias.wallpaper.core.sound.ModSounds;
 import net.minecraft.core.BlockPos;
 import net.minecraft.core.Direction;
@@ -13,10 +14,7 @@ import net.minecraft.world.level.block.state.BlockState;
 import java.util.*;
 
 public class MultiWallpaperPlacer {
-
     private static final Map<UUID, PendingPlacement> PENDING = new HashMap<>();
-    private static final long SELECTION_TIMEOUT = 30000; // 30 seconds
-    private static final int MAX_AREA = 400; // Safety limit
 
     public static class PendingPlacement {
         public final BlockPos firstPos;
@@ -30,7 +28,7 @@ public class MultiWallpaperPlacer {
         }
 
         public boolean isExpired() {
-            return System.currentTimeMillis() - timestamp > SELECTION_TIMEOUT;
+            return System.currentTimeMillis() - timestamp > WallpaperConfig.selectionTimeoutMillis();
         }
     }
 
@@ -86,9 +84,9 @@ public class MultiWallpaperPlacer {
 
         List<BlockPos> positions = getPositionsInBox(pending.firstPos, clickedPos, face);
 
-        if (positions.size() > MAX_AREA) {
+        if (positions.size() > WallpaperConfig.maxMultiPlaceArea) {
             player.displayClientMessage(
-                    Component.literal("§cArea too large! §7Maximum " + MAX_AREA + " blocks. Selection cleared."),
+                    Component.literal("§cArea too large! §7Maximum " + WallpaperConfig.maxMultiPlaceArea + " blocks. Selection cleared."),
                     true
             );
             level.playSound(null, clickedPos, SoundEvents.ITEM_BREAK,

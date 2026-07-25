@@ -3,9 +3,11 @@ package net.mattias.wallpaper.neoforge;
 import net.mattias.wallpaper.WallpaperCommon;
 import net.mattias.wallpaper.core.ModItems;
 import net.mattias.wallpaper.core.block.ModBlocks;
+import net.mattias.wallpaper.core.config.WallpaperConfig;
 import net.mattias.wallpaper.core.sound.ModSounds;
 import net.mattias.wallpaper.core.util.MultiWallpaperPlacer;
 import net.mattias.wallpaper.core.util.ShulkerInventory;
+import net.mattias.wallpaper.core.util.WallpaperLightUtil;
 import net.mattias.wallpaper.core.util.WallpaperRotationHandler;
 import net.mattias.wallpaper.core.util.WallpaperValidation;
 import net.mattias.wallpaper.neoforge.core.data.ForgeWallpaperData;
@@ -14,13 +16,12 @@ import net.minecraft.core.BlockPos;
 import net.minecraft.core.Direction;
 import net.minecraft.nbt.CompoundTag;
 import net.minecraft.server.level.ServerPlayer;
+import net.minecraft.world.level.ChunkPos;
 import net.minecraft.sounds.SoundSource;
 import net.minecraft.world.InteractionResult;
 import net.minecraft.world.item.BlockItem;
 import net.minecraft.world.item.ItemStack;
 import net.minecraft.world.level.Level;
-import net.minecraft.world.level.block.BaseEntityBlock;
-import net.minecraft.world.level.block.ShulkerBoxBlock;
 import net.minecraft.world.level.block.SoundType;
 import net.minecraft.world.level.block.state.BlockState;
 import net.neoforged.bus.api.EventPriority;
@@ -30,10 +31,10 @@ import net.neoforged.neoforge.common.util.TriState;
 import net.neoforged.neoforge.event.entity.player.PlayerEvent;
 import net.neoforged.neoforge.event.entity.player.PlayerInteractEvent;
 import net.neoforged.neoforge.event.level.BlockEvent;
+import net.neoforged.neoforge.event.level.ChunkEvent;
 
 @EventBusSubscriber(modid = WallpaperCommon.MOD_ID)
 public class WallpaperForgeEvents {
-
     @SubscribeEvent
     public static void onPlayerLoggedIn(PlayerEvent.PlayerLoggedInEvent event) {
         if (event.getEntity() instanceof ServerPlayer player) {
@@ -66,12 +67,39 @@ public class WallpaperForgeEvents {
         }
     }
 
+    @SubscribeEvent
+    public static void onChunkLoad(ChunkEvent.Load event) {
+        if (event.getLevel().isClientSide()) return;
+        if (!(event.getLevel() instanceof Level level)) return;
+
+        ForgeWallpaperData data = ForgeWallpaperData.get(level);
+        if (data == null) return;
+
+        var storage = data.data.storage;
+        if (storage.isEmpty()) return;
+
+        ChunkPos chunkPos = event.getChunk().getPos();
+
+        storage.forEach((pos, faces) -> {
+            if ((pos.getX() >> 4) != chunkPos.x || (pos.getZ() >> 4) != chunkPos.z) return;
+            if (faces == null) return;
+
+            for (BlockState state : faces.values()) {
+                if (state != null && state.getLightEmission() > 0) {
+                    WallpaperLightUtil.refreshLight(level, pos);
+                    break;
+                }
+            }
+        });
+    }
+
     private static void removeWallpaperAt(Level level, BlockPos pos) {
         ForgeWallpaperData storage = ForgeWallpaperData.get(level);
         if (storage != null) {
             var removed = storage.data.storage.remove(pos);
             if (removed != null) {
                 storage.setDirty();
+                WallpaperLightUtil.refreshLight(level, pos);
 
                 level.playSound(null, pos, ModSounds.WALLPAPER_BREAK.get(),
                         SoundSource.BLOCKS, 0.8F, 0.9F + level.getRandom().nextFloat() * 0.2F);
@@ -174,7 +202,7 @@ public class WallpaperForgeEvents {
 
         BlockState heldState = blockItem.getBlock().defaultBlockState();
 
-        if (!isValidWallpaperBlock(heldState, player)) {
+        if (!WallpaperValidation.isValidWallpaperBlock(heldState)) {
             return;
         }
 
@@ -183,7 +211,7 @@ public class WallpaperForgeEvents {
         event.setCancellationResult(InteractionResult.SUCCESS);
         event.setCanceled(true);
 
-        if (player.isCrouching()) {
+        if (WallpaperConfig.multiPlacement && player.isCrouching()) {
             if (MultiWallpaperPlacer.hasPendingPlacement(player.getUUID())) {
                 MultiWallpaperPlacer.PlacementCallback callback = new MultiWallpaperPlacer.PlacementCallback() {
                     @Override
@@ -202,6 +230,7 @@ public class WallpaperForgeEvents {
                         if (serverData != null) {
                             serverData.data.storage.get(blockPos).put(direction, state);
                             serverData.setDirty();
+                            WallpaperLightUtil.refreshLight(level, blockPos);
                             ModMessages.sendToAll(new ModMessages.SyncBlockS2CPacket(blockPos, serverData.saveBlock(blockPos)));
                         }
                     }
@@ -214,7 +243,7 @@ public class WallpaperForgeEvents {
 
                     @Override
                     public void consumeItems(ServerPlayer p, int count) {
-                        if (p.isCreative()) return;
+                        if (!WallpaperConfig.consumeItems || p.isCreative()) return;
                         ShulkerInventory.consumeItems(p, stack.getItem(), count);
                     }
                 };
@@ -232,30 +261,19 @@ public class WallpaperForgeEvents {
             if (serverData != null) {
                 serverData.data.storage.get(pos).put(face, heldState);
                 serverData.setDirty();
+                WallpaperLightUtil.refreshLight(level, pos);
 
                 SoundType blockSound = heldState.getSoundType();
                 level.playSound(null, pos, blockSound.getPlaceSound(), SoundSource.BLOCKS, 0.5F, 1.2F);
                 level.playSound(null, pos, ModSounds.WALLPAPER_PLACE.get(),
                         SoundSource.BLOCKS, 0.8F, 0.9F + level.getRandom().nextFloat() * 0.2F);
 
-                if (!player.isCreative()) {
+                if (WallpaperConfig.consumeItems && !player.isCreative()) {
                     stack.shrink(1);
                 }
 
                 ModMessages.sendToAll(new ModMessages.SyncBlockS2CPacket(pos, serverData.saveBlock(pos)));
             }
         }
-    }
-
-    private static boolean isValidWallpaperBlock(BlockState state, ServerPlayer player) {
-        boolean isValid = WallpaperValidation.isValidWallpaperBlock(state);
-
-        if (!isValid && player != null) {
-            if (state.getBlock() instanceof ShulkerBoxBlock ||
-                    state.getBlock() instanceof BaseEntityBlock) {
-            }
-        }
-
-        return isValid;
     }
 }

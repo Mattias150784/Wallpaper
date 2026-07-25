@@ -1,5 +1,6 @@
 package net.mattias.wallpaper.core.util;
 
+import net.mattias.wallpaper.core.config.WallpaperConfig;
 import net.minecraft.core.BlockPos;
 import net.minecraft.core.Direction;
 import net.minecraft.server.level.ServerPlayer;
@@ -9,7 +10,6 @@ import net.minecraft.world.level.Level;
 import net.minecraft.world.level.block.state.BlockState;
 
 public class WallpaperRotationHandler {
-
     public interface WallpaperDataAccess {
         BlockState getWallpaper(Level level, BlockPos pos, Direction face);
         void setWallpaper(Level level, BlockPos pos, Direction face, BlockState state);
@@ -19,6 +19,10 @@ public class WallpaperRotationHandler {
 
     public static boolean tryRotate(Level level, BlockPos pos, Direction face,
                                     ServerPlayer player, WallpaperDataAccess dataAccess) {
+        if (!WallpaperConfig.blockRotation) {
+            return false;
+        }
+
         BlockState existingState = dataAccess.getWallpaper(level, pos, face);
 
         if (existingState == null) {

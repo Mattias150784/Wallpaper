@@ -14,7 +14,6 @@ import net.minecraft.world.level.Level;
 import net.minecraft.world.level.block.state.BlockState;
 
 public class WallpaperRotationEvents {
-
     public static void register() {
         AttackBlockCallback.EVENT.register((player, level, hand, pos, direction) -> {
             ItemStack stack = player.getItemInHand(hand);

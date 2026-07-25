@@ -1,6 +1,7 @@
 package net.mattias.wallpaper.core.item.custom;
 
 import net.mattias.wallpaper.core.block.ModBlocks;
+import net.mattias.wallpaper.core.config.WallpaperConfig;
 import net.mattias.wallpaper.core.sound.ModSounds;
 import net.mattias.wallpaper.platform.Services;
 import net.minecraft.core.BlockPos;
@@ -34,7 +35,7 @@ public class WallpaperItem extends Item {
         level.playSound(context.getPlayer(), pos, ModSounds.WALLPAPER_PLACE.get(),
                 SoundSource.BLOCKS, 0.8F, 0.9F + level.getRandom().nextFloat() * 0.2F);
 
-        if (player != null && !player.isCreative()) {
+        if (WallpaperConfig.consumeItems && player != null && !player.isCreative()) {
             context.getItemInHand().shrink(1);
         }
 

@@ -7,7 +7,6 @@ import net.minecraft.world.item.Item;
 import java.util.function.Supplier;
 
 public class ModItems {
-
     public static final Supplier<WallpaperItem> WALLPAPER_ITEM = register("wallpaper",
             () -> new WallpaperItem(new Item.Properties()));
 

@@ -8,7 +8,6 @@ import java.util.ArrayList;
 import java.util.List;
 
 public class BlockRotation {
-
     public static boolean canRotate(BlockState state) {
         if (state.hasProperty(BlockStateProperties.AXIS)) return true;
         if (state.hasProperty(BlockStateProperties.FACING)) return true;

@@ -1,6 +1,5 @@
 package net.mattias.wallpaper.fabric.core.data;
 
-
 import net.minecraft.resources.ResourceLocation;
 import org.ladysnake.cca.api.v3.component.ComponentKey;
 import org.ladysnake.cca.api.v3.component.ComponentRegistry;

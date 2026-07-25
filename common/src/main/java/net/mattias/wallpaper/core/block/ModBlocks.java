@@ -7,7 +7,6 @@ import net.minecraft.world.level.block.Blocks;
 import java.util.function.Supplier;
 
 public class ModBlocks {
-
     public static final Supplier<Block> WALLPAPER_BLOCK = register("wallpaper_block",
             () -> new Block(BlockBehaviour.Properties.ofFullCopy(Blocks.OAK_PLANKS).noOcclusion()));
 

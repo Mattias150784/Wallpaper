@@ -8,7 +8,6 @@ import net.minecraft.sounds.SoundEvent;
 import java.util.function.Supplier;
 
 public class ModSounds {
-
     public static final Supplier<SoundEvent> WALLPAPER_PLACE = registerSound("wallpaper_place");
     public static final Supplier<SoundEvent> WALLPAPER_BREAK = registerSound("wallpaper_break");
 

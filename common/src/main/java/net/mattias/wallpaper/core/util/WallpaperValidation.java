@@ -1,15 +1,18 @@
 package net.mattias.wallpaper.core.util;
 
 import net.minecraft.core.BlockPos;
+import net.minecraft.world.level.EmptyBlockGetter;
 import net.minecraft.world.level.block.*;
-import net.minecraft.world.level.block.entity.BlockEntity;
 import net.minecraft.world.level.block.state.BlockState;
 import net.minecraft.world.phys.shapes.VoxelShape;
 
 public class WallpaperValidation {
-
     public static boolean isValidWallpaperBlock(BlockState state) {
         Block block = state.getBlock();
+
+        if (state.is(WallpaperTags.BLACKLIST)) {
+            return false;
+        }
 
         if (block instanceof ShulkerBoxBlock) {
             return false;
@@ -27,15 +30,11 @@ public class WallpaperValidation {
             return false;
         }
 
-        try {
-            BlockEntity be = ((BaseEntityBlock) block).newBlockEntity(BlockPos.ZERO, state);
-            if (be != null) {
-                return false;
-            }
-        } catch (Exception e) {
+        if (state.hasBlockEntity()) {
+            return false;
         }
 
-        VoxelShape shape = state.getCollisionShape(null, BlockPos.ZERO);
+        VoxelShape shape = state.getCollisionShape(EmptyBlockGetter.INSTANCE, BlockPos.ZERO);
         if (!shape.isEmpty()) {
             var bounds = shape.bounds();
             boolean isFullCube = bounds.minX == 0.0 && bounds.minY == 0.0 && bounds.minZ == 0.0
@@ -45,6 +44,6 @@ public class WallpaperValidation {
             }
         }
 
-        return state.isCollisionShapeFullBlock(null, BlockPos.ZERO);
+        return state.isCollisionShapeFullBlock(EmptyBlockGetter.INSTANCE, BlockPos.ZERO);
     }
 }

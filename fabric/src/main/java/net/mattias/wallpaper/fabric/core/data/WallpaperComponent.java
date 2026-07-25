@@ -1,6 +1,7 @@
 package net.mattias.wallpaper.fabric.core.data;
 
 import net.mattias.wallpaper.core.data.WallpaperData;
+import net.mattias.wallpaper.core.util.WallpaperLightUtil;
 import net.minecraft.core.BlockPos;
 import net.minecraft.core.Direction;
 import net.minecraft.core.HolderLookup;
@@ -9,12 +10,15 @@ import net.minecraft.nbt.CompoundTag;
 import net.minecraft.nbt.ListTag;
 import net.minecraft.nbt.NbtUtils;
 import net.minecraft.nbt.Tag;
+import net.minecraft.network.RegistryFriendlyByteBuf;
 import net.minecraft.world.level.Level;
 import net.minecraft.world.level.block.state.BlockState;
 import org.ladysnake.cca.api.v3.component.Component;
 import org.ladysnake.cca.api.v3.component.sync.AutoSyncedComponent;
 
+import java.util.HashSet;
 import java.util.Map;
+import java.util.Set;
 import java.util.concurrent.ConcurrentHashMap;
 
 public class WallpaperComponent implements Component, AutoSyncedComponent {
@@ -43,6 +47,36 @@ public class WallpaperComponent implements Component, AutoSyncedComponent {
 
         data.storage.clear();
         data.storage.putAll(tempStorage);
+    }
+
+    @Override
+    public void applySyncPacket(RegistryFriendlyByteBuf buf) {
+        Set<BlockPos> emissiveBefore = collectEmissivePositions();
+
+        AutoSyncedComponent.super.applySyncPacket(buf);
+
+        if (level == null || !level.isClientSide) {
+            return;
+        }
+
+        Set<BlockPos> touched = new HashSet<>(emissiveBefore);
+        touched.addAll(collectEmissivePositions());
+        for (BlockPos pos : touched) {
+            WallpaperLightUtil.refreshLight(level, pos);
+        }
+    }
+
+    private Set<BlockPos> collectEmissivePositions() {
+        Set<BlockPos> result = new HashSet<>();
+        data.storage.forEach((pos, faces) -> {
+            for (BlockState state : faces.values()) {
+                if (state != null && state.getLightEmission() > 0) {
+                    result.add(pos);
+                    break;
+                }
+            }
+        });
+        return result;
     }
 
     @Override

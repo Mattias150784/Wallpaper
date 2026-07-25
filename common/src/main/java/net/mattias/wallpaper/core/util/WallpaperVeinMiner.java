@@ -1,5 +1,6 @@
 package net.mattias.wallpaper.core.util;
 
+import net.mattias.wallpaper.core.config.WallpaperConfig;
 import net.minecraft.core.BlockPos;
 import net.minecraft.core.Direction;
 import net.minecraft.world.level.Level;
@@ -8,8 +9,6 @@ import net.minecraft.world.level.block.state.BlockState;
 import java.util.*;
 
 public class WallpaperVeinMiner {
-
-    private static final int MAX_BLOCKS = 64; // Safety limit
 
     public interface WallpaperAccessor {
         BlockState getWallpaper(Level level, BlockPos pos, Direction face);
@@ -38,7 +37,7 @@ public class WallpaperVeinMiner {
         queue.add(startPos);
         visited.add(startPos);
 
-        while (!queue.isEmpty() && found.size() < MAX_BLOCKS) {
+        while (!queue.isEmpty() && found.size() < WallpaperConfig.maxVeinMineBlocks) {
             BlockPos current = queue.poll();
 
             BlockState currentState = accessor.getWallpaper(level, current, face);

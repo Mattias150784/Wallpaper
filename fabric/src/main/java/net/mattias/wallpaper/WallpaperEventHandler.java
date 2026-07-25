@@ -1,21 +1,24 @@
 package net.mattias.wallpaper;
 
+import net.fabricmc.fabric.api.event.lifecycle.v1.ServerChunkEvents;
 import net.fabricmc.fabric.api.event.player.UseBlockCallback;
+import net.fabricmc.fabric.api.networking.v1.ServerPlayNetworking;
 import net.mattias.wallpaper.core.ModItems;
 import net.mattias.wallpaper.core.block.ModBlocks;
+import net.mattias.wallpaper.core.config.WallpaperConfig;
 import net.mattias.wallpaper.core.sound.ModSounds;
 import net.mattias.wallpaper.core.util.*;
 import net.mattias.wallpaper.fabric.core.data.ModComponents;
+import net.mattias.wallpaper.fabric.core.network.SelectionSyncPayload;
 import net.minecraft.core.BlockPos;
 import net.minecraft.core.Direction;
 import net.minecraft.server.level.ServerPlayer;
+import net.minecraft.world.level.ChunkPos;
 import net.minecraft.sounds.SoundSource;
 import net.minecraft.world.InteractionResult;
 import net.minecraft.world.item.BlockItem;
 import net.minecraft.world.item.ItemStack;
 import net.minecraft.world.level.Level;
-import net.minecraft.world.level.block.BaseEntityBlock;
-import net.minecraft.world.level.block.ShulkerBoxBlock;
 import net.minecraft.world.level.block.SoundType;
 import net.minecraft.world.level.block.state.BlockState;
 
@@ -97,11 +100,6 @@ public class WallpaperEventHandler {
             BlockState heldState = blockItem.getBlock().defaultBlockState();
 
             if (!WallpaperValidation.isValidWallpaperBlock(heldState)) {
-                if (!level.isClientSide && player instanceof ServerPlayer serverPlayer) {
-                    if (heldState.getBlock() instanceof ShulkerBoxBlock ||
-                            heldState.getBlock() instanceof BaseEntityBlock) {
-                    }
-                }
                 return InteractionResult.PASS;
             }
 
@@ -110,7 +108,7 @@ public class WallpaperEventHandler {
             }
 
             if (!level.isClientSide && player instanceof ServerPlayer serverPlayer) {
-                if (player.isCrouching()) {
+                if (WallpaperConfig.multiPlacement && player.isCrouching()) {
                     if (MultiWallpaperPlacer.hasPendingPlacement(player.getUUID())) {
                         MultiWallpaperPlacer.PlacementCallback callback = new MultiWallpaperPlacer.PlacementCallback() {
                             @Override
@@ -127,6 +125,7 @@ public class WallpaperEventHandler {
                                 ModComponents.WALLPAPER_DATA.maybeGet(lvl).ifPresent(component -> {
                                     component.data.storage.get(blockPos).put(direction, state);
                                     ModComponents.WALLPAPER_DATA.sync(lvl);
+                                    WallpaperLightUtil.refreshLight(lvl, blockPos);
                                 });
                             }
 
@@ -138,36 +137,61 @@ public class WallpaperEventHandler {
 
                             @Override
                             public void consumeItems(ServerPlayer p, int count) {
-                                if (p.isCreative()) return;
+                                if (!WallpaperConfig.consumeItems || p.isCreative()) return;
                                 ShulkerInventory.consumeItems(p, stack.getItem(), count);
                             }
                         };
 
                         MultiWallpaperPlacer.tryCompleteMultiPlacement(serverPlayer, level, pos, face, heldState, callback);
-                        SelectionPreviewManager.clearSelection();
+                        ServerPlayNetworking.send(serverPlayer, SelectionSyncPayload.clearing());
                         return InteractionResult.SUCCESS;
                     } else {
                         if (MultiWallpaperPlacer.tryStartMultiPlacement(serverPlayer, level, pos, face)) {
-                            SelectionPreviewManager.setSelection(pos, face);
+                            ServerPlayNetworking.send(serverPlayer, SelectionSyncPayload.selection(pos, face));
                             return InteractionResult.SUCCESS;
                         }
                     }
                 } else {
                     data.storage.get(pos).put(face, heldState);
                     ModComponents.WALLPAPER_DATA.sync(level);
+                    WallpaperLightUtil.refreshLight(level, pos);
 
                     SoundType blockSound = heldState.getSoundType();
                     level.playSound(null, pos, blockSound.getPlaceSound(), SoundSource.BLOCKS, 0.5F, 1.2F);
                     level.playSound(null, pos, ModSounds.WALLPAPER_PLACE.get(),
                             SoundSource.BLOCKS, 0.8F, 0.9F + level.getRandom().nextFloat() * 0.2F);
 
-                    if (!player.isCreative()) {
+                    if (WallpaperConfig.consumeItems && !player.isCreative()) {
                         stack.shrink(1);
                     }
                 }
             }
 
             return InteractionResult.sidedSuccess(level.isClientSide);
+        });
+    }
+
+    public static void registerChunkReseed() {
+        ServerChunkEvents.CHUNK_LOAD.register((world, chunk) -> {
+            var componentOpt = ModComponents.WALLPAPER_DATA.maybeGet(world);
+            if (componentOpt.isEmpty()) return;
+
+            var storage = componentOpt.get().data.storage;
+            if (storage.isEmpty()) return;
+
+            ChunkPos chunkPos = chunk.getPos();
+
+            storage.forEach((pos, faces) -> {
+                if ((pos.getX() >> 4) != chunkPos.x || (pos.getZ() >> 4) != chunkPos.z) return;
+                if (faces == null) return;
+
+                for (BlockState state : faces.values()) {
+                    if (state != null && state.getLightEmission() > 0) {
+                        WallpaperLightUtil.refreshLight(world, pos);
+                        break;
+                    }
+                }
+            });
         });
     }
 }

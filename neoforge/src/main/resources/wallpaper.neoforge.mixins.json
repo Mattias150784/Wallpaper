@@ -4,7 +4,8 @@
   "package": "net.mattias.wallpaper.neoforge.mixin",
   "compatibilityLevel": "JAVA_21",
   "mixins": [
-    "MixinBlock",
+    "LightEngineAccessor",
+    "MixinBlockLightEngine",
     "MixinLevel"
   ],
   "client": [
